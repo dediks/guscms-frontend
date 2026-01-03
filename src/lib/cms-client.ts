@@ -68,9 +68,9 @@ class CMSClient {
       );
     }
 
-    const headers: HeadersInit = {
+    const headers: Record<string, string> = {
       'Content-Type': 'application/json',
-      ...options.headers,
+      ...(options.headers as Record<string, string>),
     };
 
     if (this.token) {
@@ -82,7 +82,7 @@ class CMSClient {
         ...options,
         headers,
         next: { 
-          revalidate: 3600, // Cache for 1 hour by default
+          revalidate: false, // Cache for 1 hour by default
           tags: ['cms-pages'] // Add cache tag for revalidation
         },
       });
