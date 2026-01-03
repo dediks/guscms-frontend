@@ -1,6 +1,8 @@
 import { cmsClient } from '@/lib/cms-client';
 import { SectionRenderer } from '@/components/sections/SectionRenderer';
-import type { CMSPage } from '@/types/cms';
+import { Navbar } from '@/components/layout/Navbar';
+import { Footer } from '@/components/layout/Footer';
+import type { CMSPage, CMSSection } from '@/types/cms';
 
 // ISR Configuration: Revalidate every hour (3600 seconds)
 // This can be overridden by webhook-triggered revalidation
@@ -28,36 +30,93 @@ async function getHomePage(): Promise<CMSPage | null> {
   }
 }
 
+// Create default sections with fallback data when CMS is not available
+function getDefaultSections(): CMSSection[] {
+  return [
+    {
+      id: 1,
+      type: 'hero',
+      order: 1,
+      is_active: true,
+      settings: [],
+      fields: {},
+    },
+    {
+      id: 2,
+      type: 'stats',
+      order: 2,
+      is_active: true,
+      settings: [],
+      fields: {},
+    },
+    {
+      id: 3,
+      type: 'services',
+      order: 3,
+      is_active: true,
+      settings: [],
+      fields: {},
+    },
+    {
+      id: 4,
+      type: 'why-choose',
+      order: 4,
+      is_active: true,
+      settings: [],
+      fields: {},
+    },
+    {
+      id: 5,
+      type: 'portfolio',
+      order: 5,
+      is_active: true,
+      settings: [],
+      fields: {},
+    },
+    {
+      id: 6,
+      type: 'process',
+      order: 6,
+      is_active: true,
+      settings: [],
+      fields: {},
+    },
+    {
+      id: 7,
+      type: 'testimonials',
+      order: 7,
+      is_active: true,
+      settings: [],
+      fields: {},
+    },
+    {
+      id: 8,
+      type: 'final-cta',
+      order: 8,
+      is_active: true,
+      settings: [],
+      fields: {},
+    },
+  ];
+}
+
 export default async function Home() {
   const page = await getHomePage();
 
-  if (!page) {
-    return (
-      <div className="flex min-h-screen items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-        <main className="flex min-h-screen w-full max-w-3xl flex-col items-center justify-center py-32 px-16 bg-white dark:bg-black">
-          <div className="text-center space-y-4">
-            <h1 className="text-3xl font-semibold text-black dark:text-zinc-50">
-              Page Not Found
-            </h1>
-            <p className="text-lg text-zinc-600 dark:text-zinc-400">
-              Unable to load the homepage. Please check your CMS API configuration.
-            </p>
-          </div>
-        </main>
-      </div>
-    );
-  }
-
-  // Sort sections by order
-  const sortedSections = [...page.sections].sort((a, b) => a.order - b.order);
+  // Use CMS sections if available, otherwise use default sections with fallback data
+  const sections = page?.sections && page.sections.length > 0
+    ? [...page.sections].sort((a, b) => a.order - b.order)
+    : getDefaultSections();
 
   return (
-    <div className="min-h-screen bg-zinc-50 font-sans dark:bg-black">
-      <main className="w-full">
-        {sortedSections.map((section) => (
+    <div className="min-h-screen flex flex-col font-sans selection:bg-brand-gold selection:text-white bg-brand-dark">
+      <Navbar />
+      <main className="flex-1">
+        {sections.map((section) => (
           <SectionRenderer key={section.id} section={section} />
         ))}
       </main>
+      <Footer />
     </div>
   );
 }

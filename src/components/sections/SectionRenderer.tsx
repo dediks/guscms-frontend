@@ -1,6 +1,13 @@
 import type { CMSSection } from '@/types/cms';
 import { HeroSection } from './HeroSection';
 import { TextSection } from './TextSection';
+import { StatsSection } from './StatsSection';
+import { ServicesSection } from './ServicesSection';
+import { WhyChooseSection } from './WhyChooseSection';
+import { PortfolioSection } from './PortfolioSection';
+import { ProcessSection } from './ProcessSection';
+import { TestimonialsSection } from './TestimonialsSection';
+import { FinalCTASection } from './FinalCTASection';
 
 interface SectionRendererProps {
   section: CMSSection;
@@ -28,6 +35,27 @@ export function SectionRenderer({ section }: SectionRendererProps) {
     case 'text':
       console.log('[Section Renderer] Rendering Text section:', section.id);
       return <TextSection section={section} />;
+    case 'stats':
+      console.log('[Section Renderer] Rendering Stats section:', section.id);
+      return <StatsSection section={section} />;
+    case 'services':
+      console.log('[Section Renderer] Rendering Services section:', section.id);
+      return <ServicesSection section={section} />;
+    case 'why-choose':
+      console.log('[Section Renderer] Rendering WhyChoose section:', section.id);
+      return <WhyChooseSection section={section} />;
+    case 'portfolio':
+      console.log('[Section Renderer] Rendering Portfolio section:', section.id);
+      return <PortfolioSection section={section} />;
+    case 'process':
+      console.log('[Section Renderer] Rendering Process section:', section.id);
+      return <ProcessSection section={section} />;
+    case 'testimonials':
+      console.log('[Section Renderer] Rendering Testimonials section:', section.id);
+      return <TestimonialsSection section={section} />;
+    case 'final-cta':
+      console.log('[Section Renderer] Rendering FinalCTA section:', section.id);
+      return <FinalCTASection section={section} />;
     default:
       // Fallback for unknown section types
       console.warn(`[Section Renderer] Unknown section type: ${section.type}`, {
