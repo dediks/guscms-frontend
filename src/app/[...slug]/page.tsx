@@ -1,5 +1,6 @@
 import { cmsClient } from '@/lib/cms-client';
 import { SectionRenderer } from '@/components/sections/SectionRenderer';
+import { MaintenancePage } from '@/components/layout/MaintenancePage';
 import type { CMSPage } from '@/types/cms';
 import { notFound } from 'next/navigation';
 import type { Metadata } from 'next';
@@ -64,6 +65,14 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
 }
 
 export default async function DynamicPage({ params }: PageProps) {
+  // Fetch settings first to check maintenance mode
+  const settings = await cmsClient.getSettings();
+  
+  // Check if maintenance mode is enabled
+  if (settings?.maintenance_mode_enabled === '1') {
+    return <MaintenancePage message={settings.maintenance_message} />;
+  }
+
   const { slug } = await params;
   const page = await getPageBySlug(slug);
 

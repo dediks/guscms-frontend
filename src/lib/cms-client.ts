@@ -1,4 +1,4 @@
-import type { CMSPage, CMSPagesResponse } from '@/types/cms';
+import type { CMSPage, CMSPagesResponse, CMSSettings } from '@/types/cms';
 
 const CMS_API_URL = process.env.CMS_API_URL;
 const CMS_API_TOKEN = process.env.CMS_API_TOKEN;
@@ -38,6 +38,7 @@ class CMSClient {
   private baseUrl: string;
   private token?: string;
   private defaultEndpoint: string;
+  private cachedSettings: CMSSettings | null = null;
 
   constructor(config: CMSClientConfig & { defaultEndpoint?: string }) {
     try {
@@ -109,6 +110,16 @@ class CMSClient {
       console.log('[CMS Client] Fetching pages from:', `${this.baseUrl}${this.defaultEndpoint}`);
       const response = await this.fetchWithAuth<CMSPagesResponse>(this.defaultEndpoint);
       console.log('[CMS Client] Raw response:', JSON.stringify(response, null, 2));
+      
+      // Extract and cache settings from response
+      if (response.settings) {
+        this.cachedSettings = response.settings;
+        console.log('[CMS Client] Settings extracted:', {
+          maintenanceModeEnabled: response.settings.maintenance_mode_enabled,
+          hasLogo: !!response.settings.logo_url,
+        });
+      }
+      
       const pages = response.data || [];
       console.log('[CMS Client] Number of pages fetched:', pages.length);
       pages.forEach((page, index) => {
@@ -124,6 +135,22 @@ class CMSClient {
     } catch (error) {
       console.error('[CMS Client] Error fetching pages:', error);
       throw error;
+    }
+  }
+
+  async getSettings(): Promise<CMSSettings | null> {
+    try {
+      // If settings are already cached, return them
+      if (this.cachedSettings) {
+        return this.cachedSettings;
+      }
+      
+      // Otherwise, fetch pages which will also extract settings
+      await this.getPages();
+      return this.cachedSettings;
+    } catch (error) {
+      console.error('[CMS Client] Error fetching settings:', error);
+      return null;
     }
   }
 

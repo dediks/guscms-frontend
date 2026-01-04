@@ -3,7 +3,11 @@
 import React, { useState, useEffect } from 'react';
 import { Menu, X } from 'lucide-react';
 
-export function Navbar() {
+interface NavbarProps {
+  logoUrl?: string | null;
+}
+
+export function Navbar({ logoUrl }: NavbarProps = {}) {
   const [isScrolled, setIsScrolled] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
@@ -32,13 +36,23 @@ export function Navbar() {
         <div className="flex items-center justify-between">
           {/* Logo */}
           <div className="flex-shrink-0">
-            <a href="#" className="flex flex-col leading-none group">
-              <span className="text-2xl md:text-3xl font-bold tracking-tighter text-white group-hover:text-brand-gold transition-colors">
-                PLS
-              </span>
-              <span className="text-[0.65rem] md:text-xs font-bold tracking-[0.2em] text-neutral-400 uppercase -mt-1 group-hover:text-white transition-colors">
-                Rental Division
-              </span>
+            <a href="#" className="flex items-center group">
+              {logoUrl ? (
+                <img
+                  src={logoUrl}
+                  alt="Logo"
+                  className="h-10 w-auto object-contain"
+                />
+              ) : (
+                <div className="flex flex-col leading-none">
+                  <span className="text-2xl md:text-3xl font-bold tracking-tighter text-white group-hover:text-brand-gold transition-colors">
+                    PLS
+                  </span>
+                  <span className="text-[0.65rem] md:text-xs font-bold tracking-[0.2em] text-neutral-400 uppercase -mt-1 group-hover:text-white transition-colors">
+                    Rental Division
+                  </span>
+                </div>
+              )}
             </a>
           </div>
 

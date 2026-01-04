@@ -2,6 +2,7 @@ import { cmsClient } from '@/lib/cms-client';
 import { SectionRenderer } from '@/components/sections/SectionRenderer';
 import { Navbar } from '@/components/layout/Navbar';
 import { Footer } from '@/components/layout/Footer';
+import { MaintenancePage } from '@/components/layout/MaintenancePage';
 import type { CMSPage, CMSSection } from '@/types/cms';
 import type { Metadata } from 'next';
 import { generateMetadataFromCMS, generateDefaultMetadata } from '@/lib/seo';
@@ -117,6 +118,14 @@ export async function generateMetadata(): Promise<Metadata> {
 }
 
 export default async function Home() {
+  // Fetch settings first to check maintenance mode
+  const settings = await cmsClient.getSettings();
+  
+  // Check if maintenance mode is enabled
+  if (settings?.maintenance_mode_enabled === '1') {
+    return <MaintenancePage message={settings.maintenance_message} />;
+  }
+
   const page = await getHomePage();
 
   // Use CMS sections if available, otherwise use default sections with fallback data
@@ -126,7 +135,7 @@ export default async function Home() {
 
   return (
     <div className="min-h-screen flex flex-col font-sans selection:bg-brand-gold selection:text-white bg-brand-dark">
-      <Navbar />
+      <Navbar logoUrl={settings?.logo_url} />
       <main className="flex-1">
         {sections.map((section) => (
           <SectionRenderer key={section.id} section={section} />

@@ -35,7 +35,15 @@ export interface CMSPage {
   sections: CMSSection[];
 }
 
+export interface CMSSettings {
+  maintenance_message: string | null;
+  logo: string | null;
+  maintenance_mode_enabled: string;
+  logo_url: string | null;
+}
+
 export interface CMSPagesResponse {
   data: CMSPage[];
+  settings?: CMSSettings;
 }
 
