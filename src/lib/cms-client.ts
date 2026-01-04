@@ -1,4 +1,12 @@
-import type { CMSPage, CMSPagesResponse, CMSSettings } from '@/types/cms';
+import type { 
+  CMSPage, 
+  CMSPagesResponse, 
+  CMSSettings,
+  JSONAPIPagesResponse,
+  JSONAPIPageResource,
+  JSONAPISectionResource,
+  CMSSection
+} from '@/types/cms';
 import { logger } from './logger';
 
 const CMS_API_URL = process.env.CMS_API_URL;
@@ -33,6 +41,127 @@ function normalizeUrl(url: string): string {
 
   // For other cases, default to https://
   return `https://${url}`;
+}
+
+/**
+ * Transform JSON:API response format to CMSPage[] format
+ * 
+ * This function converts the JSON:API structure (with data, included, and meta)
+ * to the expected CMSPage[] format by:
+ * 1. Converting page resources from attributes structure
+ * 2. Matching sections from included array based on relationships
+ * 3. Converting string IDs to numbers
+ * 4. Preserving all field and settings structures
+ */
+function transformJSONAPIResponse(response: JSONAPIPagesResponse): {
+  pages: CMSPage[];
+  settings: CMSSettings | null;
+} {
+  // Validate response structure
+  if (!response || !response.data || !Array.isArray(response.data)) {
+    logger.error('[JSON:API Transformer] Invalid response structure:', {
+      hasResponse: !!response,
+      hasData: !!response?.data,
+      dataIsArray: Array.isArray(response?.data),
+      responseKeys: response ? Object.keys(response) : [],
+    });
+    throw new Error('Invalid JSON:API response: missing or invalid data array');
+  }
+
+  // Create a map of sections by ID for quick lookup
+  const sectionsMap = new Map<string, JSONAPISectionResource>();
+  response.included?.forEach((section) => {
+    if (section?.id && section?.attributes) {
+      sectionsMap.set(section.id, section);
+    } else {
+      logger.warn('[JSON:API Transformer] Invalid section in included array:', section);
+    }
+  });
+
+  // Transform pages
+  const pages: CMSPage[] = response.data
+    .map((pageResource: JSONAPIPageResource, index: number) => {
+      // Validate page resource structure
+      if (!pageResource) {
+        logger.error(`[JSON:API Transformer] Page resource at index ${index} is null or undefined`);
+        return null;
+      }
+
+      if (!pageResource.attributes) {
+        logger.error(`[JSON:API Transformer] Page resource at index ${index} missing attributes:`, {
+          id: pageResource.id,
+          type: pageResource.type,
+          resource: pageResource,
+        });
+        return null;
+      }
+
+      // Get section IDs from relationships
+      const sectionIds = pageResource.relationships?.sections?.data || [];
+      
+      // Match sections from included array
+      const sections: CMSSection[] = sectionIds
+        .map((sectionRef) => {
+          if (!sectionRef?.id) {
+            logger.warn('[JSON:API Transformer] Invalid section reference:', sectionRef);
+            return null;
+          }
+
+          const sectionResource = sectionsMap.get(sectionRef.id);
+          if (!sectionResource) {
+            logger.warn(`[JSON:API Transformer] Section ${sectionRef.id} not found in included array`);
+            return null;
+          }
+
+          if (!sectionResource.attributes) {
+            logger.warn(`[JSON:API Transformer] Section ${sectionRef.id} missing attributes`);
+            return null;
+          }
+
+          // Transform section from JSON:API format to CMSSection
+          return {
+            id: parseInt(sectionResource.id, 10),
+            type: sectionResource.attributes.type,
+            order: sectionResource.attributes.order,
+            is_active: sectionResource.attributes.is_active,
+            settings: sectionResource.attributes.settings as unknown[],
+            fields: sectionResource.attributes.fields || {},
+          };
+        })
+        .filter((section): section is CMSSection => section !== null)
+        .sort((a, b) => a.order - b.order); // Sort by order
+
+      // Transform page from JSON:API format to CMSPage
+      // At this point, we've validated that attributes exists, but use optional chaining for extra safety
+      const attrs = pageResource.attributes;
+      if (!attrs) {
+        logger.error(`[JSON:API Transformer] Attributes is null/undefined after validation for page at index ${index}`);
+        return null;
+      }
+
+      return {
+        id: parseInt(pageResource.id, 10),
+        slug: attrs.slug || '',
+        title: attrs.title || '',
+        template: attrs.template ?? null,
+        published_at: attrs.published_at ?? null,
+        meta: attrs.meta || {
+          title: null,
+          description: null,
+          keywords: null,
+          og_image: null,
+          canonical_url: null,
+          robots: null,
+        },
+        sections,
+      };
+    })
+    .filter((page): page is CMSPage => page !== null);
+
+  // Extract settings from meta
+  const settings = response.meta?.settings || null;
+
+  return { pages, settings };
 }
 
 class CMSClient {
@@ -89,6 +218,14 @@ class CMSClient {
         },
       });
 
+      // Handle 503 as valid response (CMS maintenance mode with settings)
+      // CMS may return 503 with valid JSON body containing settings
+      if (response.status === 503) {
+        logger.warn('[CMS Client] CMS API returned 503 (Service Unavailable) - parsing response for maintenance settings');
+        // Still parse the response body as it contains valid settings
+        return response.json();
+      }
+
       if (!response.ok) {
         throw new Error(
           `CMS API error: ${response.status} ${response.statusText}`
@@ -109,30 +246,74 @@ class CMSClient {
   async getPages(): Promise<CMSPage[]> {
     try {
       logger.log('[CMS Client] Fetching pages from:', `${this.baseUrl}${this.defaultEndpoint}`);
-      const response = await this.fetchWithAuth<CMSPagesResponse>(this.defaultEndpoint);
+      const response = await this.fetchWithAuth<any>(this.defaultEndpoint);
+      logger.debug('[CMS Client] Raw response structure:', {
+        hasData: !!response?.data,
+        dataIsArray: Array.isArray(response?.data),
+        hasIncluded: !!response?.included,
+        hasMeta: !!response?.meta,
+        responseKeys: response ? Object.keys(response) : [],
+        firstDataItem: response?.data?.[0] ? {
+          hasId: !!response.data[0].id,
+          hasType: !!response.data[0].type,
+          hasAttributes: !!response.data[0].attributes,
+          keys: Object.keys(response.data[0]),
+        } : null,
+      });
       logger.debug('[CMS Client] Raw response:', JSON.stringify(response, null, 2));
       
-      // Extract and cache settings from response
-      if (response.settings) {
-        this.cachedSettings = response.settings;
-        logger.log('[CMS Client] Settings extracted:', {
-          maintenanceModeEnabled: response.settings.maintenance_mode_enabled,
-          hasLogo: !!response.settings.logo_url,
-        });
+      // Validate that response has the expected structure
+      if (!response || typeof response !== 'object') {
+        throw new Error('Invalid response: response is not an object');
       }
-      
-      const pages = response.data || [];
-      logger.log('[CMS Client] Number of pages fetched:', pages.length);
-      pages.forEach((page, index) => {
-        logger.debug(`[CMS Client] Page ${index + 1}:`, {
-          id: page.id,
-          slug: page.slug,
-          title: page.title,
-          sectionsCount: page.sections?.length || 0,
-          published: page.published_at ? 'Yes' : 'No',
+
+      // Check if response is in JSON:API format (has data array with items that have attributes)
+      const isJSONAPIFormat = Array.isArray(response.data) && 
+        response.data.length > 0 && 
+        response.data[0]?.attributes !== undefined;
+
+      if (isJSONAPIFormat) {
+        // Transform JSON:API response to CMSPage[] format
+        const { pages, settings } = transformJSONAPIResponse(response as JSONAPIPagesResponse);
+        
+        // Extract and cache settings from meta.settings
+        if (settings) {
+          this.cachedSettings = settings;
+          logger.log('[CMS Client] Settings extracted:', {
+            maintenanceModeEnabled: settings.maintenance_mode_enabled,
+            hasLogo: !!settings.logo_url,
+          });
+        }
+        
+        logger.log('[CMS Client] Number of pages fetched:', pages.length);
+        pages.forEach((page, index) => {
+          logger.debug(`[CMS Client] Page ${index + 1}:`, {
+            id: page.id,
+            slug: page.slug,
+            title: page.title,
+            sectionsCount: page.sections?.length || 0,
+            published: page.published_at ? 'Yes' : 'No',
+          });
         });
-      });
-      return pages;
+        return pages;
+      } else {
+        // Handle old format (CMSPagesResponse) for backward compatibility
+        logger.warn('[CMS Client] Response appears to be in old format, attempting to parse as CMSPagesResponse');
+        const oldResponse = response as CMSPagesResponse;
+        
+        // Extract and cache settings from old format
+        if (oldResponse.settings) {
+          this.cachedSettings = oldResponse.settings;
+          logger.log('[CMS Client] Settings extracted (old format):', {
+            maintenanceModeEnabled: oldResponse.settings.maintenance_mode_enabled,
+            hasLogo: !!oldResponse.settings.logo_url,
+          });
+        }
+        
+        const pages = oldResponse.data || [];
+        logger.log('[CMS Client] Number of pages fetched (old format):', pages.length);
+        return pages;
+      }
     } catch (error) {
       logger.error('[CMS Client] Error fetching pages:', error);
       throw error;

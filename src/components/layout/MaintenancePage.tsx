@@ -2,14 +2,26 @@ import React from 'react';
 
 interface MaintenancePageProps {
   message: string | null;
+  logoUrl?: string | null;
 }
 
-export function MaintenancePage({ message }: MaintenancePageProps) {
+export function MaintenancePage({ message, logoUrl }: MaintenancePageProps) {
   const displayMessage = message || 'Situs sedang dalam pemeliharaan. Kami akan kembali segera.';
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-brand-dark">
       <div className="max-w-2xl mx-auto px-6 lg:px-8 text-center">
+        {/* Logo */}
+        {logoUrl && (
+          <div className="mb-8">
+            <img
+              src={logoUrl}
+              alt="Logo"
+              className="h-16 md:h-20 w-auto object-contain mx-auto"
+            />
+          </div>
+        )}
+
         <div className="mb-8">
           <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold text-white mb-4 tracking-tight">
             Sedang Maintenance

@@ -125,7 +125,7 @@ export default async function Home() {
   
   // Check if maintenance mode is enabled
   if (settings?.maintenance_mode_enabled === '1') {
-    return <MaintenancePage message={settings.maintenance_message} />;
+    return <MaintenancePage message={settings.maintenance_message} logoUrl={settings?.logo_url} />;
   }
 
   const page = await getHomePage();

@@ -43,7 +43,55 @@ export interface CMSSettings {
 }
 
 export interface CMSPagesResponse {
-  data: CMSPage[];
+  data?: CMSPage[]; // Optional: 503 responses may only include settings
   settings?: CMSSettings;
+}
+
+// JSON:API Format Types
+export interface JSONAPIPageAttributes {
+  slug: string;
+  title: string;
+  template: string | null;
+  published_at: string | null;
+  meta: CMSPageMeta;
+}
+
+export interface JSONAPIPageRelationships {
+  sections: {
+    data: Array<{
+      type: string;
+      id: string;
+    }>;
+  };
+}
+
+export interface JSONAPIPageResource {
+  type: string;
+  id: string;
+  attributes: JSONAPIPageAttributes;
+  relationships?: JSONAPIPageRelationships;
+}
+
+export interface JSONAPISectionAttributes {
+  type: string;
+  order: number;
+  is_active: boolean;
+  settings: Record<string, unknown>;
+  fields: CMSSectionFields;
+}
+
+export interface JSONAPISectionResource {
+  type: string;
+  id: string;
+  attributes: JSONAPISectionAttributes;
+}
+
+export interface JSONAPIPagesResponse {
+  data: JSONAPIPageResource[];
+  included?: JSONAPISectionResource[];
+  meta?: {
+    total?: number;
+    settings?: CMSSettings;
+  };
 }
 

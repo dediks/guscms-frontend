@@ -104,7 +104,7 @@ export default async function DynamicPage({ params }: PageProps) {
   
   // Check if maintenance mode is enabled
   if (settings?.maintenance_mode_enabled === '1') {
-    return <MaintenancePage message={settings.maintenance_message} />;
+    return <MaintenancePage message={settings.maintenance_message} logoUrl={settings?.logo_url} />;
   }
 
   const { slug } = await params;
