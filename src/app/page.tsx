@@ -3,6 +3,8 @@ import { SectionRenderer } from '@/components/sections/SectionRenderer';
 import { Navbar } from '@/components/layout/Navbar';
 import { Footer } from '@/components/layout/Footer';
 import type { CMSPage, CMSSection } from '@/types/cms';
+import type { Metadata } from 'next';
+import { generateMetadataFromCMS, generateDefaultMetadata } from '@/lib/seo';
 
 // ISR Configuration: Revalidate every hour (3600 seconds)
 // This can be overridden by webhook-triggered revalidation
@@ -98,6 +100,20 @@ function getDefaultSections(): CMSSection[] {
       fields: {},
     },
   ];
+}
+
+export async function generateMetadata(): Promise<Metadata> {
+  try {
+    const page = await getHomePage();
+    if (page?.meta) {
+      return generateMetadataFromCMS(page.meta, page.title, page.slug || '/');
+    }
+  } catch (error) {
+    console.error('[Home Page] Error generating metadata:', error);
+  }
+  
+  // Fallback to default metadata
+  return generateDefaultMetadata(undefined, undefined, '/');
 }
 
 export default async function Home() {

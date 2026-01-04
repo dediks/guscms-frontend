@@ -1,6 +1,8 @@
 import type { Metadata } from "next";
 import { Manrope } from "next/font/google";
 import "./globals.css";
+import { defaultMetadata, getSiteUrl } from "@/lib/seo";
+import { StructuredData } from "@/components/seo/StructuredData";
 
 const manrope = Manrope({
   variable: "--font-manrope",
@@ -8,9 +10,60 @@ const manrope = Manrope({
   weight: ["300", "400", "500", "600", "700"],
 });
 
+const siteUrl = getSiteUrl();
+
 export const metadata: Metadata = {
-  title: "PLS | Premium Sound System Rental",
-  description: "Premium Sound System Rental & Event Audio Production for B2B, Corporate, and Government events.",
+  metadataBase: new URL(siteUrl),
+  title: defaultMetadata.title,
+  description: defaultMetadata.description,
+  keywords: defaultMetadata.keywords,
+  authors: [{ name: "PLS Rental" }],
+  creator: "PLS Rental",
+  publisher: "PLS Rental",
+  formatDetection: {
+    email: false,
+    address: false,
+    telephone: false,
+  },
+  openGraph: {
+    type: "website",
+    locale: defaultMetadata.locale,
+    url: siteUrl,
+    siteName: defaultMetadata.siteName,
+    title: defaultMetadata.title.default,
+    description: defaultMetadata.description,
+    images: [
+      {
+        url: `${siteUrl}/og-image.jpg`,
+        width: 1200,
+        height: 630,
+        alt: defaultMetadata.title.default,
+      },
+    ],
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: defaultMetadata.title.default,
+    description: defaultMetadata.description,
+    images: [`${siteUrl}/og-image.jpg`],
+  },
+  robots: {
+    index: true,
+    follow: true,
+    googleBot: {
+      index: true,
+      follow: true,
+      "max-video-preview": -1,
+      "max-image-preview": "large",
+      "max-snippet": -1,
+    },
+  },
+  verification: {
+    // Add verification codes here when available
+    // google: "verification-code",
+    // yandex: "verification-code",
+    // yahoo: "verification-code",
+  },
 };
 
 export default function RootLayout({
@@ -23,6 +76,8 @@ export default function RootLayout({
       <body
         className={`${manrope.variable} antialiased bg-brand-dark text-neutral-300`}
       >
+        <StructuredData type="organization" />
+        <StructuredData type="website" />
         {children}
       </body>
     </html>

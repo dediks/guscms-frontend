@@ -2,6 +2,8 @@ import { cmsClient } from '@/lib/cms-client';
 import { SectionRenderer } from '@/components/sections/SectionRenderer';
 import type { CMSPage } from '@/types/cms';
 import { notFound } from 'next/navigation';
+import type { Metadata } from 'next';
+import { generateMetadataFromCMS, generateDefaultMetadata } from '@/lib/seo';
 
 // ISR Configuration: Revalidate every hour (3600 seconds)
 // This can be overridden by webhook-triggered revalidation
@@ -38,6 +40,27 @@ async function getPageBySlug(slug: string[]): Promise<CMSPage | null> {
     console.error('[Dynamic Page] Failed to fetch page:', error);
     return null;
   }
+}
+
+export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
+  const { slug } = await params;
+  const slugPath = slug && slug.length > 0 ? `/${slug.join('/')}` : null;
+  
+  if (!slugPath) {
+    return generateDefaultMetadata();
+  }
+
+  try {
+    const page = await getPageBySlug(slug);
+    if (page?.meta) {
+      return generateMetadataFromCMS(page.meta, page.title, page.slug || slugPath);
+    }
+  } catch (error) {
+    console.error('[Dynamic Page] Error generating metadata:', error);
+  }
+  
+  // Fallback to default metadata with slug path
+  return generateDefaultMetadata(undefined, undefined, slugPath);
 }
 
 export default async function DynamicPage({ params }: PageProps) {
