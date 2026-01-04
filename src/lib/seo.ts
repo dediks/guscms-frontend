@@ -153,6 +153,33 @@ export function generateMetadataFromCMS(
 }
 
 /**
+ * Generate breadcrumbs from slug path for SEO
+ */
+export function generateBreadcrumbs(slug: string): Array<{ name: string; url: string }> {
+  const siteUrl = getSiteUrl();
+  const segments = slug.split('/').filter(Boolean);
+  
+  const breadcrumbs: Array<{ name: string; url: string }> = [
+    { name: 'Home', url: siteUrl },
+  ];
+  
+  let currentPath = '';
+  segments.forEach((segment, index) => {
+    currentPath += `/${segment}`;
+    const name = segment
+      .split('-')
+      .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+      .join(' ');
+    breadcrumbs.push({
+      name,
+      url: `${siteUrl}${currentPath}`,
+    });
+  });
+  
+  return breadcrumbs;
+}
+
+/**
  * Generate default metadata for pages without CMS data
  */
 export function generateDefaultMetadata(

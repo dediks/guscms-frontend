@@ -1,4 +1,5 @@
 import type { CMSPage, CMSPagesResponse, CMSSettings } from '@/types/cms';
+import { logger } from './logger';
 
 const CMS_API_URL = process.env.CMS_API_URL;
 const CMS_API_TOKEN = process.env.CMS_API_TOKEN;
@@ -83,7 +84,7 @@ class CMSClient {
         ...options,
         headers,
         next: { 
-          revalidate: false, // Cache for 1 hour by default
+          revalidate: 3600, // Cache for 1 hour (3600 seconds)
           tags: ['cms-pages'] // Add cache tag for revalidation
         },
       });
@@ -107,23 +108,23 @@ class CMSClient {
 
   async getPages(): Promise<CMSPage[]> {
     try {
-      console.log('[CMS Client] Fetching pages from:', `${this.baseUrl}${this.defaultEndpoint}`);
+      logger.log('[CMS Client] Fetching pages from:', `${this.baseUrl}${this.defaultEndpoint}`);
       const response = await this.fetchWithAuth<CMSPagesResponse>(this.defaultEndpoint);
-      console.log('[CMS Client] Raw response:', JSON.stringify(response, null, 2));
+      logger.debug('[CMS Client] Raw response:', JSON.stringify(response, null, 2));
       
       // Extract and cache settings from response
       if (response.settings) {
         this.cachedSettings = response.settings;
-        console.log('[CMS Client] Settings extracted:', {
+        logger.log('[CMS Client] Settings extracted:', {
           maintenanceModeEnabled: response.settings.maintenance_mode_enabled,
           hasLogo: !!response.settings.logo_url,
         });
       }
       
       const pages = response.data || [];
-      console.log('[CMS Client] Number of pages fetched:', pages.length);
+      logger.log('[CMS Client] Number of pages fetched:', pages.length);
       pages.forEach((page, index) => {
-        console.log(`[CMS Client] Page ${index + 1}:`, {
+        logger.debug(`[CMS Client] Page ${index + 1}:`, {
           id: page.id,
           slug: page.slug,
           title: page.title,
@@ -133,7 +134,7 @@ class CMSClient {
       });
       return pages;
     } catch (error) {
-      console.error('[CMS Client] Error fetching pages:', error);
+      logger.error('[CMS Client] Error fetching pages:', error);
       throw error;
     }
   }
@@ -149,14 +150,14 @@ class CMSClient {
       await this.getPages();
       return this.cachedSettings;
     } catch (error) {
-      console.error('[CMS Client] Error fetching settings:', error);
+      logger.error('[CMS Client] Error fetching settings:', error);
       return null;
     }
   }
 
   async getPageBySlug(slug: string): Promise<CMSPage | null> {
     try {
-      console.log('[CMS Client] Fetching page by slug:', slug);
+      logger.log('[CMS Client] Fetching page by slug:', slug);
       const pages = await this.getPages();
       // Normalize slug: remove leading/trailing slashes for comparison
       const normalizedSlug = slug.replace(/^\/+|\/+$/g, '') || '/';
@@ -166,7 +167,7 @@ class CMSClient {
       }) || null;
       
       if (page) {
-        console.log('[CMS Client] Page found:', {
+        logger.log('[CMS Client] Page found:', {
           id: page.id,
           slug: page.slug,
           title: page.title,
@@ -178,15 +179,15 @@ class CMSClient {
             fieldsCount: Object.keys(s.fields || {}).length,
           })),
         });
-        console.log('[CMS Client] Full page data:', JSON.stringify(page, null, 2));
+        logger.debug('[CMS Client] Full page data:', JSON.stringify(page, null, 2));
       } else {
-        console.warn('[CMS Client] Page not found for slug:', slug);
-        console.log('[CMS Client] Available slugs:', pages.map(p => p.slug));
+        logger.warn('[CMS Client] Page not found for slug:', slug);
+        logger.debug('[CMS Client] Available slugs:', pages.map(p => p.slug));
       }
       
       return page;
     } catch (error) {
-      console.error('[CMS Client] Error fetching page by slug:', error);
+      logger.error('[CMS Client] Error fetching page by slug:', error);
       throw error;
     }
   }
@@ -196,7 +197,7 @@ class CMSClient {
       const pages = await this.getPages();
       return pages.find(page => page.id === id) || null;
     } catch (error) {
-      console.error('Error fetching page by ID:', error);
+      logger.error('Error fetching page by ID:', error);
       throw error;
     }
   }

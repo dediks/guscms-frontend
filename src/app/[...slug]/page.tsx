@@ -1,10 +1,12 @@
-import { cmsClient } from '@/lib/cms-client';
+import { dataClient } from '@/lib/data-source';
 import { SectionRenderer } from '@/components/sections/SectionRenderer';
 import { MaintenancePage } from '@/components/layout/MaintenancePage';
 import type { CMSPage } from '@/types/cms';
 import { notFound } from 'next/navigation';
 import type { Metadata } from 'next';
-import { generateMetadataFromCMS, generateDefaultMetadata } from '@/lib/seo';
+import { generateMetadataFromCMS, generateDefaultMetadata, generateBreadcrumbs } from '@/lib/seo';
+import { logger } from '@/lib/logger';
+import { StructuredData } from '@/components/seo/StructuredData';
 
 // ISR Configuration: Revalidate every hour (3600 seconds)
 // This can be overridden by webhook-triggered revalidation
@@ -14,6 +16,37 @@ interface PageProps {
   params: Promise<{ slug: string[] }>;
 }
 
+/**
+ * Generate static params for all published pages at build time
+ * This improves SEO and performance by pre-rendering pages
+ */
+export async function generateStaticParams() {
+  try {
+    const pages = await dataClient.getPages();
+    const publishedPages = pages.filter(page => page.published_at !== null);
+    
+    logger.log(`[Static Params] Generating static params for ${publishedPages.length} published pages (data source: ${dataClient.getDataSourceType()})`);
+    
+    return publishedPages
+      .filter(page => {
+        // Skip homepage as it's handled by app/page.tsx
+        const slug = page.slug.replace(/^\/+|\/+$/g, '');
+        return slug !== '' && slug !== '/';
+      })
+      .map(page => {
+        const slug = page.slug.replace(/^\/+|\/+$/g, '');
+        const slugArray = slug ? slug.split('/').filter(Boolean) : [];
+        return {
+          slug: slugArray,
+        };
+      });
+  } catch (error) {
+    logger.error('[Static Params] Error generating static params:', error);
+    // Return empty array to allow dynamic rendering as fallback
+    return [];
+  }
+}
+
 async function getPageBySlug(slug: string[]): Promise<CMSPage | null> {
   try {
     // Join slug array into path
@@ -21,24 +54,25 @@ async function getPageBySlug(slug: string[]): Promise<CMSPage | null> {
     // This route handles all other pages
     const slugPath = slug && slug.length > 0 ? `/${slug.join('/')}` : null;
     if (!slugPath) {
-      console.log('[Dynamic Page] No slug path provided');
+      logger.log('[Dynamic Page] No slug path provided');
       return null;
     }
-    console.log('[Dynamic Page] Fetching page for slug:', slugPath);
-    const page = await cmsClient.getPageBySlug(slugPath);
+    logger.log('[Dynamic Page] Fetching page for slug:', slugPath);
+    const page = await dataClient.getPageBySlug(slugPath);
     if (page) {
-      console.log('[Dynamic Page] Page data received:', {
+      logger.log('[Dynamic Page] Page data received:', {
         id: page.id,
         title: page.title,
         slug: page.slug,
         sectionsCount: page.sections?.length || 0,
+        dataSource: dataClient.getDataSourceType(),
       });
     } else {
-      console.warn('[Dynamic Page] Page not found for slug:', slugPath);
+      logger.warn('[Dynamic Page] Page not found for slug:', slugPath);
     }
     return page;
   } catch (error) {
-    console.error('[Dynamic Page] Failed to fetch page:', error);
+    logger.error('[Dynamic Page] Failed to fetch page:', error);
     return null;
   }
 }
@@ -57,7 +91,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
       return generateMetadataFromCMS(page.meta, page.title, page.slug || slugPath);
     }
   } catch (error) {
-    console.error('[Dynamic Page] Error generating metadata:', error);
+    logger.error('[Dynamic Page] Error generating metadata:', error);
   }
   
   // Fallback to default metadata with slug path
@@ -66,7 +100,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
 
 export default async function DynamicPage({ params }: PageProps) {
   // Fetch settings first to check maintenance mode
-  const settings = await cmsClient.getSettings();
+  const settings = await dataClient.getSettings();
   
   // Check if maintenance mode is enabled
   if (settings?.maintenance_mode_enabled === '1') {
@@ -83,8 +117,12 @@ export default async function DynamicPage({ params }: PageProps) {
   // Sort sections by order
   const sortedSections = [...page.sections].sort((a, b) => a.order - b.order);
 
+  // Generate breadcrumbs for SEO
+  const breadcrumbs = generateBreadcrumbs(page.slug);
+
   return (
     <div className="min-h-screen bg-zinc-50 font-sans dark:bg-black">
+      <StructuredData type="breadcrumb" breadcrumbs={breadcrumbs} />
       <main className="w-full">
         {sortedSections.map((section) => (
           <SectionRenderer key={section.id} section={section} />

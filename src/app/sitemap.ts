@@ -1,6 +1,7 @@
 import { MetadataRoute } from 'next';
-import { cmsClient } from '@/lib/cms-client';
+import { dataClient } from '@/lib/data-source';
 import { getSiteUrl } from '@/lib/seo';
+import { logger } from '@/lib/logger';
 
 // ISR Configuration: Revalidate every hour (3600 seconds)
 // This matches the revalidation strategy of the pages
@@ -19,8 +20,8 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       priority: 1.0,
     });
 
-    // Fetch all pages from CMS
-    const pages = await cmsClient.getPages();
+    // Fetch all pages from data source (CMS or static)
+    const pages = await dataClient.getPages();
     
     // Filter only published pages
     const publishedPages = pages.filter(page => page.published_at !== null);
@@ -42,7 +43,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       });
     }
   } catch (error) {
-    console.error('[Sitemap] Error generating sitemap:', error);
+    logger.error('[Sitemap] Error generating sitemap:', error);
     // Return at least the homepage if CMS fails
     if (sitemapEntries.length === 0) {
       sitemapEntries.push({
@@ -53,6 +54,8 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       });
     }
   }
+  
+  logger.log(`[Sitemap] Generated sitemap with ${sitemapEntries.length} entries`);
 
   return sitemapEntries;
 }

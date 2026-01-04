@@ -1,4 +1,4 @@
-import { cmsClient } from '@/lib/cms-client';
+import { dataClient } from '@/lib/data-source';
 import { SectionRenderer } from '@/components/sections/SectionRenderer';
 import { Navbar } from '@/components/layout/Navbar';
 import { Footer } from '@/components/layout/Footer';
@@ -6,6 +6,7 @@ import { MaintenancePage } from '@/components/layout/MaintenancePage';
 import type { CMSPage, CMSSection } from '@/types/cms';
 import type { Metadata } from 'next';
 import { generateMetadataFromCMS, generateDefaultMetadata } from '@/lib/seo';
+import { logger } from '@/lib/logger';
 
 // ISR Configuration: Revalidate every hour (3600 seconds)
 // This can be overridden by webhook-triggered revalidation
@@ -13,22 +14,23 @@ export const revalidate = 3600;
 
 async function getHomePage(): Promise<CMSPage | null> {
   try {
-    console.log('[Home Page] Fetching homepage...');
+    logger.log('[Home Page] Fetching homepage...');
     // Fetch homepage by slug "/"
-    const page = await cmsClient.getPageBySlug('/');
+    const page = await dataClient.getPageBySlug('/');
     if (page) {
-      console.log('[Home Page] Homepage data received:', {
+      logger.log('[Home Page] Homepage data received:', {
         id: page.id,
         title: page.title,
         slug: page.slug,
         sectionsCount: page.sections?.length || 0,
+        dataSource: dataClient.getDataSourceType(),
       });
     } else {
-      console.warn('[Home Page] Homepage not found');
+      logger.warn('[Home Page] Homepage not found');
     }
     return page;
   } catch (error) {
-    console.error('[Home Page] Failed to fetch homepage:', error);
+    logger.error('[Home Page] Failed to fetch homepage:', error);
     return null;
   }
 }
@@ -110,7 +112,7 @@ export async function generateMetadata(): Promise<Metadata> {
       return generateMetadataFromCMS(page.meta, page.title, page.slug || '/');
     }
   } catch (error) {
-    console.error('[Home Page] Error generating metadata:', error);
+    logger.error('[Home Page] Error generating metadata:', error);
   }
   
   // Fallback to default metadata
@@ -119,7 +121,7 @@ export async function generateMetadata(): Promise<Metadata> {
 
 export default async function Home() {
   // Fetch settings first to check maintenance mode
-  const settings = await cmsClient.getSettings();
+  const settings = await dataClient.getSettings();
   
   // Check if maintenance mode is enabled
   if (settings?.maintenance_mode_enabled === '1') {

@@ -1,29 +1,103 @@
 # Environment Variables Setup
 
-Create a `.env.local` file in the root of the project with the following variables:
+Sistem ini mendukung **dua mode** untuk fleksibilitas client:
+
+1. **CMS Mode** - Client bisa update data sendiri melalui CMS
+2. **Static Mode** - Data di-manage oleh developer (tidak ada CMS)
+
+## Mode Selection
+
+Sistem akan otomatis memilih mode berdasarkan konfigurasi `CMS_API_URL`:
+
+- **Jika `CMS_API_URL` di-set** → CMS Mode (client bisa update sendiri)
+- **Jika `CMS_API_URL` kosong atau 'disabled'** → Static Mode (developer only)
+
+---
+
+## Setup untuk CMS Mode (Client Bisa Update Sendiri)
+
+Create a `.env.local` file dengan konfigurasi berikut:
 
 ```env
-# CMS API Configuration
-# Base URL for your headless CMS API
+# CMS API Configuration (REQUIRED untuk CMS Mode)
 CMS_API_URL=https://your-cms-api.com
 
 # Optional: API endpoint path (defaults to /api/v1/pages)
-# Adjust based on your CMS API structure
-# This endpoint should return an array of pages
 CMS_API_ENDPOINT=/api/v1/pages
 
 # Optional: API authentication token (Bearer token)
-# Leave empty if your CMS doesn't require authentication
 CMS_API_TOKEN=your-api-token-here
 
 # Webhook Configuration
-# Secret key for validating webhook signatures
-# This should match the secret configured in your CMS webhook settings
 WEBHOOK_SECRET=your-webhook-secret-here
 
 # Optional: Additional secret for revalidation endpoint
-# Can be used as an extra layer of security
 REVALIDATE_SECRET=your-revalidate-secret-here
+```
+
+### CMS Mode Details
+
+Ketika `CMS_API_URL` di-set, sistem akan:
+- ✅ Fetch data dari CMS API
+- ✅ Support webhook revalidation
+- ✅ Client bisa update content melalui CMS
+- ✅ Auto-revalidate setiap 1 jam atau via webhook
+
+---
+
+## Setup untuk Static Mode (Developer Only)
+
+Untuk client yang **tidak perlu update sendiri**, gunakan static data:
+
+```env
+# Disable CMS - kosongkan atau set ke 'disabled'
+CMS_API_URL=
+
+# Atau secara eksplisit:
+CMS_API_URL=disabled
+```
+
+### Static Mode Details
+
+Ketika CMS disabled, sistem akan:
+- ✅ Load data dari `src/data/static/pages.ts` dan `src/data/static/settings.ts`
+- ✅ Tidak perlu CMS API
+- ✅ Data di-manage oleh developer
+- ✅ Lebih cepat (tidak ada API calls)
+- ✅ Perfect untuk client yang content-nya jarang berubah
+
+### Customize Static Data
+
+Edit file berikut untuk customize data per client:
+
+1. **Pages Data**: `src/data/static/pages.ts`
+   - Edit array `staticPages` dengan data pages client
+   - Format sama dengan CMS response
+
+2. **Settings Data**: `src/data/static/settings.ts`
+   - Edit object `staticSettings` dengan settings client
+   - Include logo, maintenance mode, dll
+
+**Contoh:**
+```typescript
+// src/data/static/pages.ts
+const staticPages: CMSPage[] = [
+  {
+    id: 1,
+    slug: '/',
+    title: 'Home',
+    sections: [
+      {
+        id: 1,
+        type: 'hero',
+        fields: {
+          title: { value: 'Client Company Name', type: 'text' },
+          // ... more fields
+        },
+      },
+    ],
+  },
+];
 ```
 
 ## Configuration Details

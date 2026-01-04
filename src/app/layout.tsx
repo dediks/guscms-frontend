@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Manrope } from "next/font/google";
 import "./globals.css";
 import { defaultMetadata, getSiteUrl } from "@/lib/seo";
@@ -7,7 +7,10 @@ import { StructuredData } from "@/components/seo/StructuredData";
 const manrope = Manrope({
   variable: "--font-manrope",
   subsets: ["latin"],
-  weight: ["300", "400", "500", "600", "700"],
+  weight: ["400", "600", "700"], // Only load used weights for better performance
+  display: 'swap', // Better font loading performance
+  preload: true,
+  fallback: ['system-ui', 'arial'],
 });
 
 const siteUrl = getSiteUrl();
@@ -20,6 +23,8 @@ export const metadata: Metadata = {
   authors: [{ name: "PLS Rental" }],
   creator: "PLS Rental",
   publisher: "PLS Rental",
+  applicationName: "PLS Rental",
+  category: "Business",
   formatDetection: {
     email: false,
     address: false,
@@ -64,6 +69,12 @@ export const metadata: Metadata = {
     // yandex: "verification-code",
     // yahoo: "verification-code",
   },
+};
+
+export const viewport: Viewport = {
+  width: 'device-width',
+  initialScale: 1,
+  maximumScale: 5,
 };
 
 export default function RootLayout({

@@ -1,20 +1,34 @@
 import type { CMSSection } from '@/types/cms';
-import { HeroSection } from './HeroSection';
-import { TextSection } from './TextSection';
-import { StatsSection } from './StatsSection';
-import { ServicesSection } from './ServicesSection';
-import { WhyChooseSection } from './WhyChooseSection';
-import { PortfolioSection } from './PortfolioSection';
-import { ProcessSection } from './ProcessSection';
-import { TestimonialsSection } from './TestimonialsSection';
-import { FinalCTASection } from './FinalCTASection';
+import dynamic from 'next/dynamic';
+import { logger } from '@/lib/logger';
+
+// Dynamic imports for code splitting - only load sections when needed
+const HeroSection = dynamic(() => import('./HeroSection').then(m => ({ default: m.HeroSection })), {
+  loading: () => <div className="h-96 animate-pulse bg-zinc-200 dark:bg-zinc-800" />,
+});
+
+const TextSection = dynamic(() => import('./TextSection').then(m => ({ default: m.TextSection })));
+
+const StatsSection = dynamic(() => import('./StatsSection').then(m => ({ default: m.StatsSection })));
+
+const ServicesSection = dynamic(() => import('./ServicesSection').then(m => ({ default: m.ServicesSection })));
+
+const WhyChooseSection = dynamic(() => import('./WhyChooseSection').then(m => ({ default: m.WhyChooseSection })));
+
+const PortfolioSection = dynamic(() => import('./PortfolioSection').then(m => ({ default: m.PortfolioSection })));
+
+const ProcessSection = dynamic(() => import('./ProcessSection').then(m => ({ default: m.ProcessSection })));
+
+const TestimonialsSection = dynamic(() => import('./TestimonialsSection').then(m => ({ default: m.TestimonialsSection })));
+
+const FinalCTASection = dynamic(() => import('./FinalCTASection').then(m => ({ default: m.FinalCTASection })));
 
 interface SectionRendererProps {
   section: CMSSection;
 }
 
 export function SectionRenderer({ section }: SectionRendererProps) {
-  console.log('[Section Renderer] Rendering section:', {
+  logger.debug('[Section Renderer] Rendering section:', {
     id: section.id,
     type: section.type,
     order: section.order,
@@ -24,41 +38,32 @@ export function SectionRenderer({ section }: SectionRendererProps) {
 
   // Only render active sections
   if (!section.is_active) {
-    console.log('[Section Renderer] Section is inactive, skipping:', section.id);
+    logger.debug('[Section Renderer] Section is inactive, skipping:', section.id);
     return null;
   }
 
   switch (section.type) {
     case 'hero':
-      console.log('[Section Renderer] Rendering Hero section:', section.id);
       return <HeroSection section={section} />;
     case 'text':
-      console.log('[Section Renderer] Rendering Text section:', section.id);
       return <TextSection section={section} />;
     case 'stats':
-      console.log('[Section Renderer] Rendering Stats section:', section.id);
       return <StatsSection section={section} />;
     case 'services':
-      console.log('[Section Renderer] Rendering Services section:', section.id);
       return <ServicesSection section={section} />;
     case 'why-choose':
-      console.log('[Section Renderer] Rendering WhyChoose section:', section.id);
       return <WhyChooseSection section={section} />;
     case 'portfolio':
-      console.log('[Section Renderer] Rendering Portfolio section:', section.id);
       return <PortfolioSection section={section} />;
     case 'process':
-      console.log('[Section Renderer] Rendering Process section:', section.id);
       return <ProcessSection section={section} />;
     case 'testimonials':
-      console.log('[Section Renderer] Rendering Testimonials section:', section.id);
       return <TestimonialsSection section={section} />;
     case 'final-cta':
-      console.log('[Section Renderer] Rendering FinalCTA section:', section.id);
       return <FinalCTASection section={section} />;
     default:
       // Fallback for unknown section types
-      console.warn(`[Section Renderer] Unknown section type: ${section.type}`, {
+      logger.warn(`[Section Renderer] Unknown section type: ${section.type}`, {
         sectionId: section.id,
         sectionType: section.type,
         fields: section.fields,
