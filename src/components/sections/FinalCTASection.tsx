@@ -10,11 +10,18 @@ export function FinalCTASection({ section }: FinalCTASectionProps) {
   const fields = section.fields;
   
   // Fallback values from original frontend component
-  const title = fields.title?.value || 'Siap Wujudkan Event Berkelas?';
-  const description = fields.description?.value || 'Dapatkan penawaran terbaik dan konsultasi teknis gratis untuk kesuksesan acara Anda. Respon cepat dan profesional.';
-  const ctaText = fields.cta_text?.value || 'Jadwalkan Konsultasi';
-  const ctaUrl = fields.cta_url?.value || 'https://wa.me/6282257289604';
-  const contactInfo = fields.contact_info?.value || 'Hubungi kami: 0822-5728-9604 (WhatsApp/Call)';
+  const title = (typeof fields.title?.value === 'string' ? fields.title.value : null) || 'Siap Wujudkan Event Berkelas?';
+  const description = (typeof fields.description?.value === 'string' ? fields.description.value : null) || 'Dapatkan penawaran terbaik dan konsultasi teknis gratis untuk kesuksesan acara Anda. Respon cepat dan profesional.';
+  
+  // Support both CMS field names (button_text/button_url) and legacy names (cta_text/cta_url)
+  const buttonText = typeof fields.button_text?.value === 'string' ? fields.button_text.value : null;
+  const buttonUrl = typeof fields.button_url?.value === 'string' ? fields.button_url.value : null;
+  const legacyCtaText = typeof fields.cta_text?.value === 'string' ? fields.cta_text.value : null;
+  const legacyCtaUrl = typeof fields.cta_url?.value === 'string' ? fields.cta_url.value : null;
+  
+  const ctaText = buttonText || legacyCtaText || 'Jadwalkan Konsultasi';
+  const ctaUrl = buttonUrl || legacyCtaUrl || 'https://wa.me/6282257289604';
+  const contactInfo = (typeof fields.contact_info?.value === 'string' ? fields.contact_info.value : null) || 'Hubungi kami: 0822-5728-9604 (WhatsApp/Call)';
 
   return (
     <section id="contact" className="py-24 bg-brand-gold relative overflow-hidden">

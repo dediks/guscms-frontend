@@ -61,6 +61,7 @@ export function SectionRenderer({ section }: SectionRendererProps) {
     case 'testimonials':
       return <TestimonialsSection section={section} />;
     case 'final-cta':
+    case 'final_cta':
       return <FinalCTASection section={section} />;
     default:
       // Fallback for unknown section types

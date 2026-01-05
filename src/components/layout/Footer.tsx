@@ -68,7 +68,19 @@ export function Footer() {
         </div>
 
         <div className="border-t border-white/5 pt-8 text-center md:text-left flex flex-col md:flex-row justify-between items-center text-xs text-neutral-600">
-          <p>&copy; {new Date().getFullYear()} PLS Rental Division. All rights reserved.</p>
+          <div className="flex flex-col md:flex-row items-center md:items-start gap-2 md:gap-4">
+            <p>&copy; {new Date().getFullYear()} PLS Rental Division. All rights reserved.</p>
+            <p className="text-neutral-500">
+              Powered by{' '}
+              <a href="https://kodingus.com" target="_blank" rel="noopener noreferrer" className="hover:text-neutral-400 transition-colors">
+                GusCMS
+              </a>
+              {' & '}
+              <a href="https://kodingus.com" target="_blank" rel="noopener noreferrer" className="hover:text-neutral-400 transition-colors">
+                kodingus.com
+              </a>
+            </p>
+          </div>
           <div className="flex space-x-6 mt-4 md:mt-0">
             <a href="#" className="hover:text-neutral-400">Privacy Policy</a>
             <a href="#" className="hover:text-neutral-400">Terms of Service</a>

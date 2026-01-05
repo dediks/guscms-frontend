@@ -186,7 +186,10 @@ function transformJSONAPIResponse(response: JSONAPIPagesResponse): {
 
           // Transform section from JSON:API format to CMSSection
           // Normalize image URLs in fields (server-side normalization)
-          const rawFields = sectionResource.attributes.fields || {};
+          // Handle case where fields might be an array instead of an object
+          const rawFields = Array.isArray(sectionResource.attributes.fields) 
+            ? {} 
+            : (sectionResource.attributes.fields || {});
           const normalizedFields = normalizeSectionFields(rawFields);
           
           return {

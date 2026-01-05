@@ -109,7 +109,7 @@ export function WhyChooseSection({ section }: WhyChooseSectionProps) {
                alt="Sound Engineer Working" 
                className="w-full h-full object-cover opacity-80"
              />
-             <div className="absolute inset-0 bg-gradient-to-t from-black/80 to-transparent flex items-end p-8">
+             <div className="absolute inset-0 bg-linear-to-t from-black/80 to-transparent flex items-end p-8">
                <div className="border-l-4 border-brand-gold pl-6">
                  <p className="text-white text-xl font-medium italic">{quote}</p>
                </div>
