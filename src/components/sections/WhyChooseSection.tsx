@@ -2,6 +2,7 @@ import React from 'react';
 import { CheckCircle2, ShieldCheck, Clock, Activity } from 'lucide-react';
 import type { CMSSection } from '@/types/cms';
 import type { LucideIcon } from 'lucide-react';
+import { getImageUrl } from '@/lib/cms-utils';
 
 interface WhyChooseSectionProps {
   section: CMSSection;
@@ -60,7 +61,7 @@ export function WhyChooseSection({ section }: WhyChooseSectionProps) {
   const badge = fields.badge?.value || 'Mengapa PLS?';
   const title = fields.title?.value || 'Standar Tinggi untuk Acara Penting Anda.';
   const description = fields.description?.value || 'Kami mengerti bahwa dalam event korporat dan kenegaraan, tidak ada ruang untuk kesalahan teknis. PLS hadir sebagai mitra teknis yang memprioritaskan detail dan kesempurnaan.';
-  const imageUrl = fields.image?.value || 'https://picsum.photos/id/431/800/1000';
+  const imageUrl = getImageUrl(fields.image?.value) || 'https://picsum.photos/id/431/800/1000';
   const quote = fields.quote?.value || '"Keberhasilan acara Anda adalah reputasi kami."';
 
   return (

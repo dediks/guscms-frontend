@@ -1,5 +1,82 @@
 import type { NextConfig } from "next";
 
+/**
+ * Extract hostname from CMS API URL for image remotePatterns
+ */
+function getCMSHostname(): string | null {
+  const cmsUrl = process.env.CMS_API_URL;
+  if (!cmsUrl || cmsUrl === 'disabled' || cmsUrl.trim() === '') {
+    return null;
+  }
+
+  try {
+    // Normalize URL (add protocol if missing)
+    let normalizedUrl = cmsUrl.trim().replace(/\/+$/, '');
+    if (!/^https?:\/\//i.test(normalizedUrl)) {
+      if (/^localhost|^\d+\.\d+\.\d+\.\d+|^127\.\d+\.\d+\.\d+/i.test(normalizedUrl)) {
+        normalizedUrl = `http://${normalizedUrl}`;
+      } else {
+        normalizedUrl = `https://${normalizedUrl}`;
+      }
+    }
+
+    const url = new URL(normalizedUrl);
+    return url.hostname;
+  } catch {
+    return null;
+  }
+}
+
+const cmsHostname = getCMSHostname();
+
+// Build remotePatterns array
+const remotePatterns: Array<{
+  protocol: 'http' | 'https';
+  hostname: string;
+  pathname: string;
+}> = [
+  {
+    protocol: 'https',
+    hostname: 'picsum.photos',
+    pathname: '/**',
+  },
+  // Always allow localhost for development (common for CMS images)
+  {
+    protocol: 'http',
+    hostname: 'localhost',
+    pathname: '/**',
+  },
+  // Add 127.0.0.1 for better server-side resolution in Docker/WSL environments
+  {
+    protocol: 'http',
+    hostname: '127.0.0.1',
+    pathname: '/**',
+  },
+  // Add host.docker.internal for Docker Desktop (Windows/Mac) to access host machine
+  {
+    protocol: 'http',
+    hostname: 'host.docker.internal',
+    pathname: '/**',
+  },
+];
+
+// Add CMS hostname if available
+if (cmsHostname) {
+  // Add both http and https patterns for CMS (in case CMS uses http in dev)
+  remotePatterns.push(
+    {
+      protocol: 'https',
+      hostname: cmsHostname,
+      pathname: '/**',
+    },
+    {
+      protocol: 'http',
+      hostname: cmsHostname,
+      pathname: '/**',
+    }
+  );
+}
+
 const nextConfig: NextConfig = {
   // Image optimization for better performance
   images: {
@@ -10,6 +87,7 @@ const nextConfig: NextConfig = {
     dangerouslyAllowSVG: true,
     contentDispositionType: 'attachment',
     contentSecurityPolicy: "default-src 'self'; script-src 'none'; sandbox;",
+    remotePatterns,
   },
   
   // Enable compression

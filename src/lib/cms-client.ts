@@ -5,9 +5,11 @@ import type {
   JSONAPIPagesResponse,
   JSONAPIPageResource,
   JSONAPISectionResource,
-  CMSSection
+  CMSSection,
+  CMSField
 } from '@/types/cms';
 import { logger } from './logger';
+import { getImageUrl } from './cms-utils';
 
 const CMS_API_URL = process.env.CMS_API_URL;
 const CMS_API_TOKEN = process.env.CMS_API_TOKEN;
@@ -44,6 +46,60 @@ function normalizeUrl(url: string): string {
 }
 
 /**
+ * Normalize image URLs in section fields (server-side only)
+ * This ensures image URLs are normalized before being passed to client components
+ * Handles both string URLs and object formats (e.g., { url: '...', id: 1 })
+ */
+function normalizeSectionFields(fields: Record<string, CMSField>): Record<string, CMSField> {
+  const normalizedFields: Record<string, CMSField> = {};
+  
+  for (const [key, field] of Object.entries(fields)) {
+    // Check if this field might contain an image URL
+    // Common image field names: image, background_image, backgroundImage, etc.
+    // Also check field type to be more precise
+    const isImageField = /image|Image|background|Background/.test(key) || 
+                        (field?.type && /image|Image/.test(field.type));
+    
+    if (isImageField && field?.value) {
+      // Normalize the image URL using getImageUrl (works server-side)
+      // getImageUrl handles both string and object formats and returns normalized string
+      const normalizedUrl = getImageUrl(field.value);
+      
+      // Always replace with normalized string URL (client components expect string)
+      // This ensures Next.js Image component can access the URL properly
+      // If normalization fails, try to extract URL from object or use original string
+      let finalUrl = normalizedUrl;
+      if (!finalUrl && typeof field.value === 'object' && field.value !== null) {
+        const imageObj = field.value as { url?: string; original_url?: string };
+        finalUrl = imageObj.url || imageObj.original_url || null;
+      } else if (!finalUrl && typeof field.value === 'string') {
+        finalUrl = field.value;
+      }
+      
+      // Log normalization for debugging (only in development)
+      if (process.env.NODE_ENV === 'development' && finalUrl) {
+        const originalUrl = typeof field.value === 'string' ? field.value : 
+                          (typeof field.value === 'object' && field.value !== null ? 
+                           (field.value as { url?: string }).url : 'unknown');
+        if (originalUrl !== finalUrl) {
+          logger.log(`[Image Normalization] ${key}: ${originalUrl} → ${finalUrl}`);
+        }
+      }
+      
+      normalizedFields[key] = {
+        ...field,
+        value: finalUrl,
+      };
+    } else {
+      // Keep other fields as-is
+      normalizedFields[key] = field;
+    }
+  }
+  
+  return normalizedFields;
+}
+
+/**
  * Transform JSON:API response format to CMSPage[] format
  * 
  * This function converts the JSON:API structure (with data, included, and meta)
@@ -52,6 +108,7 @@ function normalizeUrl(url: string): string {
  * 2. Matching sections from included array based on relationships
  * 3. Converting string IDs to numbers
  * 4. Preserving all field and settings structures
+ * 5. Normalizing image URLs in section fields (server-side)
  */
 function transformJSONAPIResponse(response: JSONAPIPagesResponse): {
   pages: CMSPage[];
@@ -119,13 +176,17 @@ function transformJSONAPIResponse(response: JSONAPIPagesResponse): {
           }
 
           // Transform section from JSON:API format to CMSSection
+          // Normalize image URLs in fields (server-side normalization)
+          const rawFields = sectionResource.attributes.fields || {};
+          const normalizedFields = normalizeSectionFields(rawFields);
+          
           return {
             id: parseInt(sectionResource.id, 10),
             type: sectionResource.attributes.type,
             order: sectionResource.attributes.order,
             is_active: sectionResource.attributes.is_active,
-            settings: sectionResource.attributes.settings as unknown[],
-            fields: sectionResource.attributes.fields || {},
+            settings: (sectionResource.attributes.settings as unknown) as unknown[],
+            fields: normalizedFields,
           };
         })
         .filter((section): section is CMSSection => section !== null)
@@ -311,8 +372,18 @@ class CMSClient {
         }
         
         const pages = oldResponse.data || [];
-        logger.log('[CMS Client] Number of pages fetched (old format):', pages.length);
-        return pages;
+        
+        // Normalize image URLs in section fields for old format too
+        const normalizedPages = pages.map(page => ({
+          ...page,
+          sections: page.sections?.map(section => ({
+            ...section,
+            fields: normalizeSectionFields(section.fields || {}),
+          })) || [],
+        }));
+        
+        logger.log('[CMS Client] Number of pages fetched (old format):', normalizedPages.length);
+        return normalizedPages;
       }
     } catch (error) {
       logger.error('[CMS Client] Error fetching pages:', error);

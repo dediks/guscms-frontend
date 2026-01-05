@@ -8,7 +8,7 @@ export interface CMSPageMeta {
 }
 
 export interface CMSField {
-  value: string | null;
+  value: string | null | Record<string, unknown>; // Can be string, null, or object (for image fields)
   type: string;
 }
 

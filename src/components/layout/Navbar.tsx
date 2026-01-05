@@ -35,7 +35,7 @@ export function Navbar({ logoUrl }: NavbarProps = {}) {
       <div className="max-w-7xl mx-auto px-6 lg:px-8">
         <div className="flex items-center justify-between">
           {/* Logo */}
-          <div className="flex-shrink-0">
+          <div className="shrink-0">
             <a href="#" className="flex items-center group">
               {logoUrl ? (
                 <img
