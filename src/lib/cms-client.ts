@@ -48,7 +48,15 @@ function normalizeUrl(url: string): string {
 /**
  * Normalize image URLs in section fields (server-side only)
  * This ensures image URLs are normalized before being passed to client components
- * Handles both string URLs and object formats (e.g., { url: '...', id: 1 })
+ * 
+ * Handles CMS image field structure where:
+ * - field.value is a CMSImageValue object: { id, url, original_url, alt, title, ... }
+ * - field.type is "image"
+ * 
+ * Also supports string URLs for backward compatibility.
+ * 
+ * The function extracts the URL from the image value object and normalizes it,
+ * then replaces the field.value with the normalized string URL for client components.
  */
 function normalizeSectionFields(fields: Record<string, CMSField>): Record<string, CMSField> {
   const normalizedFields: Record<string, CMSField> = {};
@@ -56,13 +64,14 @@ function normalizeSectionFields(fields: Record<string, CMSField>): Record<string
   for (const [key, field] of Object.entries(fields)) {
     // Check if this field might contain an image URL
     // Common image field names: image, background_image, backgroundImage, etc.
-    // Also check field type to be more precise
+    // Also check field type to be more precise (CMS returns type: "image" for image fields)
     const isImageField = /image|Image|background|Background/.test(key) || 
                         (field?.type && /image|Image/.test(field.type));
     
     if (isImageField && field?.value) {
       // Normalize the image URL using getImageUrl (works server-side)
-      // getImageUrl handles both string and object formats and returns normalized string
+      // getImageUrl handles CMSImageValue objects (extracts url or original_url) and string formats
+      // Returns normalized string URL
       const normalizedUrl = getImageUrl(field.value);
       
       // Always replace with normalized string URL (client components expect string)

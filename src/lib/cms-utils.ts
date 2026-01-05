@@ -4,6 +4,8 @@
  * Helper functions for working with CMS data structures
  */
 
+import type { CMSImageValue } from '@/types/cms';
+
 /**
  * Extract string value from CMS field (handles both string and object types)
  * 
@@ -92,16 +94,31 @@ function normalizeImageUrl(url: string): string {
 
 /**
  * Extract image URL from CMS image field value
- * Handles both CMS format (object with url) and string format (backward compatibility)
- * Normalizes localhost URLs to use CMS_API_URL for better server-side resolution
  * 
- * @param imageValue - The value from a CMS image field (can be string, object, or null)
- * @returns The image URL string or null if not found
+ * Handles the CMS image field structure where image fields have:
+ * - `value`: CMSImageValue object with `url` (optimized/converted) and `original_url` properties
+ * - `type`: "image"
+ * 
+ * Also supports string format for backward compatibility.
+ * Normalizes localhost URLs to use CMS_API_URL for better server-side resolution.
+ * 
+ * @param imageValue - The value from a CMS image field:
+ *   - CMSImageValue object: { id, url, original_url, alt, title, ... }
+ *   - string: URL string (backward compatibility)
+ *   - null/undefined: empty field
+ * @returns The image URL string (prefers optimized `url` over `original_url`) or null if not found
  * 
  * @example
- * // CMS format (object)
- * getImageUrl({ url: 'http://localhost/storage/9/image.webp', id: 9 })
- * // Returns: 'http://localhost/storage/9/image.webp' (or normalized URL if CMS_API_URL is set)
+ * // CMS format (CMSImageValue object from fields.image.value)
+ * getImageUrl({
+ *   id: 14,
+ *   url: 'http://localhost/storage/14/conversions/image.webp',
+ *   original_url: 'http://localhost/storage/14/image.png',
+ *   alt: 'image.png',
+ *   ...
+ * })
+ * // Returns: 'http://localhost/storage/14/conversions/image.webp' (prefers optimized url)
+ * // Or normalized URL if CMS_API_URL is set
  * 
  * @example
  * // String format (backward compatibility)
@@ -113,13 +130,18 @@ export function getImageUrl(imageValue: unknown): string | null {
   
   let url: string | null = null;
   
-  // If it's already a string, use it
+  // If it's already a string, use it (backward compatibility)
   if (typeof imageValue === 'string') {
     url = imageValue;
   }
-  // If it's an object with url property (CMS format)
+  // If it's an object (CMSImageValue format from CMS)
   else if (typeof imageValue === 'object' && imageValue !== null) {
-    const imageObj = imageValue as { url?: string; original_url?: string };
+    // Type guard to check if it's a CMSImageValue-like object
+    const imageObj = imageValue as Partial<CMSImageValue> & { url?: string; original_url?: string };
+    
+    // Prefer optimized/converted URL over original URL
+    // The `url` property typically contains optimized versions (e.g., webp conversions)
+    // Fall back to `original_url` if `url` is not available
     url = imageObj.url || imageObj.original_url || null;
   }
   

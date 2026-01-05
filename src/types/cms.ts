@@ -7,8 +7,33 @@ export interface CMSPageMeta {
   robots: string | null;
 }
 
+/**
+ * Image value structure from CMS image fields
+ * The CMS returns image fields with this structure in the `value` property
+ */
+export interface CMSImageValue {
+  id: number;
+  url: string;
+  original_url: string;
+  alt: string | null;
+  title: string | null;
+  width: number | null;
+  height: number | null;
+  mime_type: string;
+  file_size: number;
+  responsive_images: unknown[];
+  thumbnail: string | null;
+}
+
 export interface CMSField {
-  value: string | null | Record<string, unknown>; // Can be string, null, or object (for image fields)
+  /**
+   * Field value - can be:
+   * - string: for text fields
+   * - CMSImageValue: for image fields (when type is "image")
+   * - null: for empty fields
+   * - Record<string, unknown>: for other complex field types
+   */
+  value: string | null | CMSImageValue | Record<string, unknown>;
   type: string;
 }
 

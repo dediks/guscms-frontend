@@ -1,16 +1,17 @@
 import React from 'react';
 import { ArrowRight } from 'lucide-react';
 import type { CMSSection } from '@/types/cms';
+import { getImageUrl } from '@/lib/cms-utils';
 
 interface PortfolioSectionProps {
   section: CMSSection;
 }
 
 interface PortfolioItem {
-  id: number;
+  image: number | string | Record<string, unknown> | null;
   title: string;
   category: string;
-  imageUrl: string;
+  description: string;
 }
 
 export function PortfolioSection({ section }: PortfolioSectionProps) {
@@ -19,39 +20,44 @@ export function PortfolioSection({ section }: PortfolioSectionProps) {
   // Fallback values from original frontend component
   const defaultPortfolioItems: PortfolioItem[] = [
     {
-      id: 1,
+      image: "https://picsum.photos/id/449/800/600",
       title: "National Leadership Summit 2023",
       category: "Corporate Conference",
-      imageUrl: "https://picsum.photos/id/449/800/600"
+      description: "Event korporat skala besar dengan sistem audio premium"
     },
     {
-      id: 2,
+      image: "https://picsum.photos/id/158/800/600",
       title: "Gala Dinner BUMN",
       category: "Gala & Awarding",
-      imageUrl: "https://picsum.photos/id/158/800/600"
+      description: "Acara formal dengan standar teknis tinggi"
     },
     {
-      id: 3,
+      image: "https://picsum.photos/id/452/800/600",
       title: "Konser Outdoor City Festival",
       category: "Live Music Production",
-      imageUrl: "https://picsum.photos/id/452/800/600"
+      description: "Produksi musik live dengan cakupan audio luas"
     },
   ];
 
   // Try to parse portfolio items from CMS, fallback to defaults
   let portfolioItems: PortfolioItem[] = defaultPortfolioItems;
-  if (fields.portfolio_items?.value) {
+  if (fields.items?.value) {
     try {
-      portfolioItems = JSON.parse(fields.portfolio_items.value);
+      const value = fields.items.value;
+      if (typeof value === 'string') {
+        portfolioItems = JSON.parse(value);
+      } else if (Array.isArray(value)) {
+        portfolioItems = value as PortfolioItem[];
+      }
     } catch {
       portfolioItems = defaultPortfolioItems;
     }
   }
 
-  const title = fields.title?.value || 'Pengalaman Nyata di Lapangan';
-  const description = fields.description?.value || 'Menangani berbagai skala acara dengan konsistensi kualitas, mulai dari ruang meeting eksklusif hingga panggung outdoor megah.';
-  const ctaText = fields.cta_text?.value || 'Lihat Pengalaman Kami';
-  const ctaUrl = fields.cta_url?.value || '#contact';
+  const title = (typeof fields.title?.value === 'string' ? fields.title.value : null) || 'Pengalaman Nyata di Lapangan';
+  const description = (typeof fields.description?.value === 'string' ? fields.description.value : null) || 'Menangani berbagai skala acara dengan konsistensi kualitas, mulai dari ruang meeting eksklusif hingga panggung outdoor megah.';
+  const ctaText = (typeof fields.cta_text?.value === 'string' ? fields.cta_text.value : null) || 'Lihat Pengalaman Kami';
+  const ctaUrl = (typeof fields.cta_url?.value === 'string' ? fields.cta_url.value : null) || '#contact';
 
   return (
     <section id="portfolio" className="py-24 bg-brand-dark">
@@ -70,21 +76,27 @@ export function PortfolioSection({ section }: PortfolioSectionProps) {
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-          {portfolioItems.map((item) => (
-            <div key={item.id} className="group relative overflow-hidden rounded-sm cursor-pointer">
-              <div className="aspect-[4/3] w-full bg-neutral-800">
-                <img 
-                  src={item.imageUrl} 
-                  alt={item.title} 
-                  className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105 opacity-80 group-hover:opacity-100"
-                />
+          {portfolioItems.map((item, index) => {
+            const imageUrl = getImageUrl(item.image) || 'https://picsum.photos/id/449/800/600';
+            return (
+              <div key={index} className="group relative overflow-hidden rounded-sm cursor-pointer">
+                <div className="aspect-[4/3] w-full bg-neutral-800">
+                  <img 
+                    src={imageUrl} 
+                    alt={item.title} 
+                    className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105 opacity-80 group-hover:opacity-100"
+                  />
+                </div>
+                <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/40 to-transparent flex flex-col justify-end p-6 translate-y-2 group-hover:translate-y-0 transition-transform duration-300">
+                  <span className="text-brand-gold text-xs font-semibold uppercase tracking-wider mb-2">{item.category}</span>
+                  <h3 className="text-white text-xl font-bold mb-1">{item.title}</h3>
+                  {item.description && (
+                    <p className="text-neutral-300 text-sm line-clamp-2">{item.description}</p>
+                  )}
+                </div>
               </div>
-              <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/40 to-transparent flex flex-col justify-end p-6 translate-y-2 group-hover:translate-y-0 transition-transform duration-300">
-                <span className="text-brand-gold text-xs font-semibold uppercase tracking-wider mb-2">{item.category}</span>
-                <h3 className="text-white text-xl font-bold">{item.title}</h3>
-              </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
 
         <div className="mt-8 md:hidden text-center">
