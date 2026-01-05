@@ -6,8 +6,10 @@ interface StatsSectionProps {
 }
 
 interface Stat {
-  label: string;
+  icon: string | null;
   value: string;
+  label: string;
+  suffix: string | null;
 }
 
 export function StatsSection({ section }: StatsSectionProps) {
@@ -15,17 +17,22 @@ export function StatsSection({ section }: StatsSectionProps) {
   
   // Fallback values from original frontend component
   const defaultStats: Stat[] = [
-    { label: "Tahun Pengalaman", value: "10+" },
-    { label: "Event Sukses", value: "500+" },
-    { label: "Klien Korporat & Instansi", value: "200+" },
-    { label: "Keandalan Teknis", value: "100%" },
+    { icon: null, value: "10", label: "Tahun Pengalaman", suffix: "+" },
+    { icon: null, value: "500", label: "Event Sukses", suffix: "+" },
+    { icon: null, value: "200", label: "Klien Korporat & Instansi", suffix: "+" },
+    { icon: null, value: "100", label: "Keandalan Teknis", suffix: "%" },
   ];
 
   // Try to parse stats from CMS, fallback to defaults
   let stats: Stat[] = defaultStats;
   if (fields.stats?.value) {
     try {
-      stats = JSON.parse(fields.stats.value);
+      const value = fields.stats.value;
+      if (typeof value === 'string') {
+        stats = JSON.parse(value);
+      } else if (Array.isArray(value)) {
+        stats = value as Stat[];
+      }
     } catch {
       stats = defaultStats;
     }
@@ -37,7 +44,9 @@ export function StatsSection({ section }: StatsSectionProps) {
         <div className="grid grid-cols-2 md:grid-cols-4 gap-8 md:gap-12 text-center md:text-left">
           {stats.map((stat, index) => (
             <div key={index} className="flex flex-col">
-              <span className="text-3xl md:text-4xl font-bold text-white mb-1 tracking-tight">{stat.value}</span>
+              <span className="text-3xl md:text-4xl font-bold text-white mb-1 tracking-tight">
+                {stat.value}{stat.suffix || ''}
+              </span>
               <span className="text-sm uppercase tracking-wide text-neutral-500 font-medium">{stat.label}</span>
             </div>
           ))}

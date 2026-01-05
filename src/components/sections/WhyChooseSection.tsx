@@ -9,9 +9,9 @@ interface WhyChooseSectionProps {
 }
 
 interface Reason {
-  icon: string;
+  icon: string | null;
   title: string;
-  text: string;
+  description: string;
 }
 
 const iconMap: Record<string, LucideIcon> = {
@@ -29,22 +29,22 @@ export function WhyChooseSection({ section }: WhyChooseSectionProps) {
     {
       icon: "ShieldCheck",
       title: "Tim Teknis Berpengalaman",
-      text: "Didukung oleh SDM yang memahami etika kerja profesional dan teknis audio mendalam."
+      description: "Didukung oleh SDM yang memahami etika kerja profesional dan teknis audio mendalam."
     },
     {
       icon: "CheckCircle2",
       title: "Peralatan Terawat & Ready",
-      text: "Unit selalu melalui maintenance rutin. Kebersihan dan fungsi alat adalah prioritas kami."
+      description: "Unit selalu melalui maintenance rutin. Kebersihan dan fungsi alat adalah prioritas kami."
     },
     {
       icon: "Clock",
       title: "Tepat Waktu & Rapi",
-      text: "Setup dilakukan jauh sebelum acara dimulai. Manajemen kabel yang rapi untuk estetika venue."
+      description: "Setup dilakukan jauh sebelum acara dimulai. Manajemen kabel yang rapi untuk estetika venue."
     },
     {
       icon: "Activity",
       title: "Monitoring Penuh",
-      text: "Standby operator selama acara berlangsung untuk antisipasi dan penanganan teknis instan."
+      description: "Standby operator selama acara berlangsung untuk antisipasi dan penanganan teknis instan."
     }
   ];
 
@@ -52,17 +52,22 @@ export function WhyChooseSection({ section }: WhyChooseSectionProps) {
   let reasons: Reason[] = defaultReasons;
   if (fields.reasons?.value) {
     try {
-      reasons = JSON.parse(fields.reasons.value);
+      const value = fields.reasons.value;
+      if (typeof value === 'string') {
+        reasons = JSON.parse(value);
+      } else if (Array.isArray(value)) {
+        reasons = value as Reason[];
+      }
     } catch {
       reasons = defaultReasons;
     }
   }
 
-  const badge = fields.badge?.value || 'Mengapa PLS?';
-  const title = fields.title?.value || 'Standar Tinggi untuk Acara Penting Anda.';
-  const description = fields.description?.value || 'Kami mengerti bahwa dalam event korporat dan kenegaraan, tidak ada ruang untuk kesalahan teknis. PLS hadir sebagai mitra teknis yang memprioritaskan detail dan kesempurnaan.';
+  const badge = (typeof fields.title?.value === 'string' ? fields.title.value : null) || 'Mengapa PLS?';
+  const title = (typeof fields.subtitle?.value === 'string' ? fields.subtitle.value : null) || 'Standar Tinggi untuk Acara Penting Anda.';
+  const description = (typeof fields.description?.value === 'string' ? fields.description.value : null) || 'Kami mengerti bahwa dalam event korporat dan kenegaraan, tidak ada ruang untuk kesalahan teknis. PLS hadir sebagai mitra teknis yang memprioritaskan detail dan kesempurnaan.';
   const imageUrl = getImageUrl(fields.image?.value) || 'https://picsum.photos/id/431/800/1000';
-  const quote = fields.quote?.value || '"Keberhasilan acara Anda adalah reputasi kami."';
+  const quote = (typeof fields.quote?.value === 'string' ? fields.quote.value : null) || '"Keberhasilan acara Anda adalah reputasi kami."';
 
   return (
     <section id="why-us" className="py-24 bg-neutral-900 border-t border-white/5">
@@ -79,15 +84,17 @@ export function WhyChooseSection({ section }: WhyChooseSectionProps) {
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-8 gap-y-10">
               {reasons.map((reason, idx) => {
-                const IconComponent = iconMap[reason.icon] || ShieldCheck;
+                const IconComponent = reason.icon ? (iconMap[reason.icon] || ShieldCheck) : ShieldCheck;
                 return (
                   <div key={idx} className="flex flex-col">
                     <div className="flex items-center mb-3 text-white font-semibold text-lg">
-                      <IconComponent className="text-brand-gold mr-3 h-5 w-5" />
+                      {reason.icon && (
+                        <IconComponent className="text-brand-gold mr-3 h-5 w-5" />
+                      )}
                       {reason.title}
                     </div>
-                    <p className="text-sm text-neutral-500 pl-8 leading-relaxed">
-                      {reason.text}
+                    <p className={`text-sm text-neutral-500 leading-relaxed ${reason.icon ? 'pl-8' : ''}`}>
+                      {reason.description}
                     </p>
                   </div>
                 );

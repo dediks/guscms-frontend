@@ -52,6 +52,7 @@ export function SectionRenderer({ section }: SectionRendererProps) {
     case 'services':
       return <ServicesSection section={section} />;
     case 'why-choose':
+    case 'why_choose':
       return <WhyChooseSection section={section} />;
     case 'portfolio':
       return <PortfolioSection section={section} />;
